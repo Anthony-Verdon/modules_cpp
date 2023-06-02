@@ -1,4 +1,5 @@
 #include "RPN.hpp"
+#include <iostream>
 
 bool	RPN::is_digit(const char arg)
 {
@@ -14,85 +15,55 @@ bool	RPN::is_operator(const char arg)
 	return (true);
 }
 
-void	RPN::calculate(std::stack<std::string> stack)
+void 	RPN::calculate(std::stack<int> & numbers, char calculus_operator)
 {
-	std::stack<std::string> result_stack;
-	float				result;
-	std::string			first_number;
-	std::string			second_number;
-	std::string			calcul_operator;
-	std::ostringstream	oss;
-
-	if (stack.size() == 1)
+	if (numbers.empty())	
+		throw ("calcul impossible.\n");
+	int nb_2 = numbers.top();
+	numbers.pop();
+	if (numbers.empty())	
+		throw ("calcul impossible.\n");
+	int nb_1 = numbers.top();
+	numbers.pop();
+	int result;
+	switch (calculus_operator)
 	{
-		result_stack.push(stack.top());
-		stack.pop();
+		case '+':
+			result = nb_1 + nb_2;
+			numbers.push(result);
+			break;
+		case '-':
+			result = nb_1 - nb_2;
+			numbers.push(result);
+			break;
+		case '*':
+			result = nb_1 * nb_2;
+			numbers.push(result);
+			break;
+		case '/':
+			if (nb_2 == 0)
+				throw ("division by 0 is forbidden.\n");
+			result = nb_1 / nb_2;
+			numbers.push(result);
+			break;
 	}
-	while (stack.size() >= 1)
-	{
-		calcul_operator = stack.top();
-		while (!is_operator(calcul_operator[0]))
-		{
-			result_stack.push(stack.top());
-			stack.pop();
-			calcul_operator = stack.top();
-		}
-		stack.pop();
-		second_number = result_stack.top();
-		result_stack.pop();
-		first_number = result_stack.top();
-		result_stack.pop();
-		result = atoi(first_number.c_str());
-		if (calcul_operator == "+")
-			result += atoi(second_number.c_str());
-		else if (calcul_operator == "-")
-			result -= atoi(second_number.c_str());
-		else if (calcul_operator == "*")
-			result *= atoi(second_number.c_str());
-		else if (calcul_operator == "/")
-		{
-			if (atoi(second_number.c_str()) != 0)
-				result /= atoi(second_number.c_str());
-			else
-			{
-				std::cerr << "division by 0 is forbidden\n";
-				return ;
-			}
-		}
-		oss << result;
-		result_stack.push(oss.str());
-		oss.str("");
-		oss.clear();
-
-	}
-	std::cout << "result : " << result_stack.top() << "\n";
 }
 
-bool	RPN::create_stack(std::stack <std::string> & stack, std::string arg)
+void	RPN::interpret(char *arg)
 {
-	std::string tmp;
-	bool onSpace = false;
-	int nb_number = 0;
-	int nb_operator = 0;
-
-	for (int i = arg.length() - 1; i >= 0; i--)
+	std::stack<int> numbers;
+	for (size_t i = 0; arg[i]; i++)
 	{
-		if ((is_operator(arg[i]) || is_digit(arg[i])) && onSpace == false)
-		{
-			tmp = arg[i];
-			stack.push(tmp);
-			onSpace = true;
-			if (is_operator(arg[i]))
-				nb_operator++;
-			else
-				nb_number++;
-		}
-		else if (arg[i] == ' ' && onSpace == true)
-			onSpace = false;
+		if (is_operator(arg[i]) && (arg[i + 1] == ' ' || arg[i + 1] == '\0'))
+			calculate(numbers, arg[i]);
+		else if (is_digit(arg[i]) && (arg[i + 1] == ' ' || arg[i + 1] == '\0'))
+			numbers.push(arg[i] - '0');
+		else if (arg[i] == ' ')
+			continue;
 		else
-			return (false);
+			throw ("invalid argument.\n");
 	}
-	if (nb_number - 1 != nb_operator)
-		return (false);
-	return (true);
+	if (numbers.size() != 1)
+		throw ("calcul impossible.\n");
+	std::cout << "result: " << numbers.top() << ".\n";
 }

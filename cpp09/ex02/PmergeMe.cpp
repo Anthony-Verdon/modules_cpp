@@ -30,7 +30,7 @@ void PmergeMe::start_algorithm(int argc, char **argv)
 	start_deque = clock();
 	merge_sort(deque);
 	end_deque = clock();
-	std::cout << "Vector sorted: " << is_sorted(vector) << "\nTime to process a range of " << argc - 1 << " with a vector : " << std::fixed << (end_vector - start_vector) / (double)CLOCKS_PER_SEC << "\n";
-	std::cout  << "Deque sorted: " << is_sorted(deque) << "\nTime to process a range of " << argc - 1 << " with a deque : " << std::fixed << (end_deque - start_deque) / (double)CLOCKS_PER_SEC << "\n";
+	std::cout << "Vector sorted: " << is_sorted(vector) << "\nTime to process a range of " << argc - 1 << " with a vector : " << std::fixed << (end_vector - start_vector) / (double)CLOCKS_PER_SEC << "s\n";
+	std::cout  << "Deque sorted: " << is_sorted(deque) << "\nTime to process a range of " << argc - 1 << " with a deque : " << std::fixed << (end_deque - start_deque) / (double)CLOCKS_PER_SEC << "s\n";
 
 }

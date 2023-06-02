@@ -1,15 +1,19 @@
 #include "BitcoinExchange.hpp"
+#include <iostream>
 
 int	main(int argc, char **argv)
 {
-	std::map<std::string, double>	database;
-	if (argc != 2)
+	try
 	{
-		std::cerr << "Program only take one argument, on the format <name>\n";
+		if (argc != 2)
+			throw ("Program take one argument.\n");
+		BitcoinExchange::parseDatabase();
+		BitcoinExchange::parseInput(argv[1]);
+		return (0);
+	}
+	catch (const char * error)
+	{
+		std::cerr << error;
 		return (1);
 	}
-	else if (BitcoinExchange::check_database(database) == false)
-		return (2);
-	BitcoinExchange::use_input(argv[1], database);
-	return (0);
 }

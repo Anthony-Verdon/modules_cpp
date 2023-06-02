@@ -1,17 +1,18 @@
 #include "RPN.hpp"
+#include <iostream>
 
-//gérer division par 0
 int	main(int argc, char **argv)
 {
-	if (argc != 2)
+	try
 	{
-		std::cerr << "Invalid number of arguments. Example of use : \"./RPN \"8 9 *\" \"\n";
+		if (argc != 2)
+			throw ("only one argument accepted.\n");
+		RPN::interpret(argv[1]);
+		return (0);
+	}
+	catch (const char *error)
+	{
+		std::cerr << error;
 		return (1);
 	}
-	std::stack<std::string> stack;
-	if (RPN::create_stack(stack, argv[1]) == true)
-		RPN::calculate(stack);
-	else
-		std::cerr << "Invalid line.\n";
-	return (0);
 }

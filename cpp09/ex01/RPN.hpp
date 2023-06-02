@@ -1,19 +1,15 @@
 #ifndef RPN_HPP
 #define RPN_HPP
 
-#include <iostream>
-#include <sstream>
 #include <stack>
-#include <string>
-#include <cstdlib>
 
 class RPN
 {
 	 public:
 		static bool	is_digit(const char arg);
 		static bool	is_operator(const char arg);
-		static bool	create_stack(std::stack <std::string> & stack, std::string arg);
-		static void	calculate(std::stack<std::string> stack);
+		static void	interpret(char *arg);
+		static void calculate(std::stack<int> & numbers, char calculus_operator);
 	 private:
 		RPN();
 		~RPN();

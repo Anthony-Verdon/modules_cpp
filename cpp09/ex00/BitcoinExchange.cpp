@@ -1,65 +1,175 @@
 #include "BitcoinExchange.hpp"
 #include <cstdlib>
-#include <string>
+#include <iostream>
 
-std::string BitcoinExchange::find_nearest_date(std::map<std::string, double> database, std::string date)
-{
-	std::string nearest_date;
+const int INPUT = 0;
+const int DATA = 1;
+std::map<std::string, double> BitcoinExchange::database;
 
-	nearest_date = "-1";
-	for (std::map<std::string, double>::iterator it = database.begin(); it != database.end(); it++)
-	{
-		if (std::strtol(it->first.c_str(), NULL, 10) > std::strtol(nearest_date.c_str(), NULL, 10)
-			&& std::strtol(it->first.c_str(), NULL, 10) < std::strtol(date.c_str(), NULL, 10))
-			nearest_date = it->first;
-	}
-	return (nearest_date);
+bool BitcoinExchange::isLeap(const int & year) {
+	if (year % 4 == 0 && year % 100 != 0)
+		return (true);
+	return (false);
 }
 
-void	BitcoinExchange::use_input(char *input, std::map<std::string, double> database)
-{
-	std::ifstream inputFile(input);
-	if (!inputFile.is_open())
-	{
-		std::cerr << "can't open input file.\n";
-		return ;
-	}
+bool BitcoinExchange::dateValid(const std::string & date) {
+	int year;
+	int month;
+	int day;
+	size_t rod1Pos;
+	size_t rod2Pos;
+	char *endPos;
+	
+	if (date.length() == 0)
+		return (false);
+	rod1Pos = date.find("-");
+	if (rod1Pos == std::string::npos)
+		return (false);
+	rod2Pos = date.find("-", rod1Pos + 1);
+	if (rod2Pos == std::string::npos)
+		return (false);
+	
+	year = strtol(date.substr(0, rod1Pos).c_str(), &endPos, 10);
+	if (*endPos != '\0' || errno == ERANGE
+		|| date.substr(0, rod1Pos).find_first_not_of("0123456789") != std::string::npos)
+		return (false);
+	month = strtol(date.substr(rod1Pos + 1, rod2Pos - rod1Pos - 1).c_str(), &endPos, 10);
+	if (*endPos != '\0' || errno == ERANGE
+		|| date.substr(rod1Pos + 1, rod2Pos - rod1Pos - 1).find_first_not_of("0123456789") != std::string::npos)
+		return (false);
+	day = strtol(date.substr(rod2Pos + 1, date.length() - rod2Pos - 1).c_str(), &endPos, 10);
+	if (*endPos != '\0' || errno == ERANGE
+		|| date.substr(rod2Pos + 1, date.length() - rod2Pos - 1).find_first_not_of("0123456789") != std::string::npos)
+		return (false);
+
+	if (year < 2009)
+		return (false);
+	if (month < 0 || month > 12)
+		return (false);
+	if ((month == 1 || month == 3 || month == 5 || month == 7
+		|| month == 8 || month == 10 || month == 12) && (day < 1 || day > 31))
+		return (false);
+	if ((month == 4 || month == 6 || month == 9 || month == 11) && (day < 1 || day > 30))
+		return (false);
+	if (month == 2 &&
+		((isLeap(year) && (day < 1 || day > 29))
+		 || (!isLeap(year) && (day < 1 || day > 28))))
+		return (false);
+	return (true);
+}
+
+bool BitcoinExchange::valueValid(const std::string & value, const int & file) {
+	char *endPos;
+	double rv;
+	if (value.length() == 0)
+		return (false);
+	if (value.find_first_not_of("0123456789.") != std::string::npos)
+		return (false);
+	rv = std::strtof(value.c_str(), &endPos);
+	if (*endPos != '\0' || errno == ERANGE)
+		return (false);
+	if (file == INPUT && (rv < 0 || rv > 1000))
+		return (false);
+	return (true);
+}
+
+void BitcoinExchange::readDatabase(std::ifstream & infile){
 	std::string line;
 	std::string date;
-	std::string date_clean;
-	std::string nearest_date;
-	std::getline(inputFile, line);
-	if (line != "date | value")
+	std::string value;
+	size_t quotePosition;
+
+	std::getline(infile, line);
+	if (line.length() == 0)
+		throw ("data.csv empty.\n");
+	else if (line != "date,exchange_rate")
+		throw ("first line of data.csv should be \"date,exchange_rate\".\n");
+	while (std::getline(infile, line))
 	{
-		std::cerr << "line invalid in input file\nLine :" << line << "\n";
-		inputFile.close();
-		return ;
+		quotePosition = line.find(",");
+		if (quotePosition == std::string::npos)
+			throw ("line invalid in data.csv.\n");
+		date = line.substr(0, quotePosition);
+		value = line.substr(quotePosition + 1, line.length());
+		if (dateValid(date) && valueValid(value, DATA))
+			database[date] = std::strtod(value.c_str(), NULL);
+		else
+			throw ("line invalid in data.csv.\n");
 	}
-	int	nb_line = 1;
-	while (std::getline(inputFile, line))
+	if (database.empty())
+		throw ("data.csv empty.\n");
+}
+
+void BitcoinExchange::parseDatabase() {
+	std::ifstream infile("data.csv");
+	if (infile.is_open())
+			readDatabase(infile);
+	else
+		throw ("can't open data.csv.\n");
+}
+
+void BitcoinExchange::readInput(std::ifstream & infile) {
+	std::string line;
+	std::string date;
+	std::string value;
+	size_t pipePosition;
+	std::map<std::string, double>::iterator it;
+
+	std::getline(infile, line);
+	if (line.length() == 0)
+		throw ("input file empty.\n");
+	else if (line != "date | value")
+		throw ("first line of input file should be \"date | value\".\n");
+	while (std::getline(infile, line))
 	{
-		if (check_line_input(line, nb_line) == true)
+		pipePosition = line.find("|");
+		if (pipePosition == std::string::npos || line[pipePosition - 1] != ' ' || line[pipePosition + 1] != ' ')
 		{
-			date = line;
-			date[4] = date[5];
-			date[5] = date[6];
-			date[6] = date[8];
-			date[7] = date[9];
-			for (size_t i = 8; i < line.length(); i++)
-				date[i] = '\0';
-			date_clean = line;
-			for (size_t i = 10; i < line.length(); i++)
-				date_clean[i] = '\0';
-			if (database.find(date) == database.end())
-				nearest_date = find_nearest_date(database, date);
-			else
-				nearest_date = date;
-			if (nearest_date == "-1")
-				std::cout << "no value found for " << date_clean << "or before\n";	
-			else
-				std::cout << date_clean << " => " << database[nearest_date] * strtof(&line[13], NULL) << "\n";
+			std::cerr << ("line invalid in input file.\n");
+			continue ;
 		}
-		nb_line++;
+		date = line.substr(0, pipePosition - 1);
+		value = line.substr(pipePosition + 2, line.length());
+		if (dateValid(date) && valueValid(value, INPUT))
+		{
+			it = database.upper_bound(date);
+			if (it != database.begin())
+			{
+				--it;
+				std::cout << date << " => " << std::strtof(value.c_str(), NULL) * it->second << "\n";
+			}
+			else
+				std::cerr << "line invalid in input file.\n";
+		}
+		else
+			std::cerr << "line invalid in input file.\n";
 	}
-	inputFile.close();
+	if (database.empty())
+		std::cerr << ("input file empty.\n");
+}
+
+void BitcoinExchange::parseInput(const char * inputFile) {
+	std::ifstream infile(inputFile);
+	if (infile.is_open())
+			readInput(infile);
+	else
+		throw ("can't open input file.\n");
+}
+
+BitcoinExchange::BitcoinExchange(){
+}
+
+BitcoinExchange::~BitcoinExchange(){
+}
+
+BitcoinExchange::BitcoinExchange(const BitcoinExchange &copy){
+	*this = copy;
+}
+
+BitcoinExchange & BitcoinExchange::operator=(const BitcoinExchange &copy){
+	if (&copy != this)
+	{
+		this->database = copy.database;
+	}
+	return (*this);
 }

@@ -1,7 +1,5 @@
 SRCS := main.cpp \
 		BitcoinExchange.cpp \
-		BitcoinParsing.cpp \
-		BitcoinUtils.cpp
 
 OBJS := ${SRCS:.cpp=.o}
 
